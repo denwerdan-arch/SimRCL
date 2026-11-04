@@ -1,0 +1,16 @@
+# Sandbox tests on every push and pull request (no Cinema 4D needed: the tests cover the portable modules
+# and the pure parts of the Cinema 4D ones).
+name: tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python tools/run_tests.py

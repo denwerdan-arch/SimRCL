@@ -1,0 +1,28 @@
+# Push a tag v<version> (the same as VERSION in simready_lib/simready_ui.py) to publish a release:
+# tests run, the zip is built and attached, the notes come from that version's section in CHANGELOG.md.
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python tools/run_tests.py
+      - name: Check that the tag matches VERSION
+        run: |
+          VERSION=$(python -c "import sys; sys.path.insert(0, 'tools'); import build_release; print(build_release.version())")
+          test "v$VERSION" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME does not match VERSION $VERSION"; exit 1; }
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+      - run: python tools/build_release.py dist
+      - run: python tools/release_notes.py "$VERSION" > notes.md
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "dist/SimRCL_by_Dead_wall_v$VERSION.zip" --title "SimRCL $VERSION" --notes-file notes.md
