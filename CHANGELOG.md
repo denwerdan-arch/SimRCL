@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0
+
+- Update check: when the window opens (at most once a day) SimRCL asks GitHub whether a newer release is out and shows an "Update x.y.z" button next to its name; a click opens the release page (install it with its INSTALL.bat). Settings: "Check for updates now", "Check for updates on start" (on by default). The request goes to api.github.com and carries nothing about you or your scenes; without internet nothing changes.
+
 ## 1.1.0
 
 The project is now called SimRCL by Dead_wall (SimReady Central Library; was SimRS). Settings and downloads of earlier versions are kept.

@@ -34,7 +34,7 @@ MATCH_LOW = rgb(230, 70, 55)  # below 50
 BRAND_DIM = rgb(96, 96, 96)
 
 BRAND_NAME, BRAND_BY = "SimRCL", "by Dead_wall"  # SimReady Central Library (was "SimRS" until 1.0.5)
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 PRODUCT_NAME = BRAND_NAME + " " + BRAND_BY
 AUTHOR_URL = "https://trycad.online/?lang=en"  # the brand in the header links here
 DRAW_ERRORS = []  # last tracebacks of failed repaints, readable from a debugging console

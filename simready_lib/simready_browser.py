@@ -19,6 +19,7 @@ import simready_media
 import simready_render_target as render_target
 import simready_settings as prefs
 import simready_tasks
+import simready_update
 import simready_ui
 import simready_ui_detail as detail
 import simready_ui_header as header
@@ -52,6 +53,7 @@ TOGGLE_PHONG = MENU_BASE + 7
 TOGGLE_SPLIT = MENU_BASE + 8
 TOGGLE_LAYERS = MENU_BASE + 9
 TOGGLE_ROUND = MENU_BASE + 15  # + 10 .. + 13 are the info rows
+CHECK_UPDATES, TOGGLE_UPDATES, OPEN_UPDATE = MENU_BASE + 16, MENU_BASE + 17, MENU_BASE + 18
 ROUND_LABEL = "Round corners controls (Redshift, Arnold, V-Ray)"
 MODE_INFO_BASE = MENU_BASE + 50  # greyed description rows of the mode menu
 TARGET_BASE = MENU_BASE + 20  # TARGET_BASE + index into TARGET_CHOICES
@@ -119,6 +121,7 @@ class Model:
         self.video_on = False  # clips play on hover and in the open card (settings switch)
         self.match_requested = set()  # card keys sent for a match percentage in the current search
         self.clips = simready_video.ClipDeck(CLIP_AREAS)
+        self.update = None  # release_info of a newer SimRCL, shown as a button next to the brand
 
     @property
     def has_more(self):
@@ -221,7 +224,7 @@ class BrowserDialog(gui.GeDialog):
         self.model.video_on = prefs.video_enabled(self.settings)
         self.video_window = None  # created on first use, then reused
         self.panels = {
-            ID_BRAND: header.BrandPanel(self.act), ID_MODE: header.ModePanel(self.act, self.model),
+            ID_BRAND: header.BrandPanel(self.act, self.model), ID_MODE: header.ModePanel(self.act, self.model),
             ID_ACTIONS: header.ActionsPanel(self.act), ID_SIDEBAR: sidebar.SidebarPanel(self.act, self.model),
             ID_TOOLBAR: results.ToolbarPanel(self.act, self.model), ID_RESULTS: results.ResultsPanel(self.act, self.model),
             ID_DETAIL: detail.DetailPanel(self.act, self.model), ID_ACTIONBAR: detail.ActionBar(self.act, self.model),
@@ -293,6 +296,8 @@ class BrowserDialog(gui.GeDialog):
         self.rescan_library()
         simready_tasks.catalog_async(self.events, CACHE_DIR)
         simready_tasks.previews_async(self.events, PREVIEW_DIR, PREVIEW_LIMIT_BYTES)
+        if prefs.updates_enabled(self.settings):
+            self.check_updates(force=False)
         self.refresh_all()
         return True
 
@@ -737,6 +742,31 @@ class BrowserDialog(gui.GeDialog):
         """Open the author's site (the brand in the header is its link)."""
         webbrowser.open(simready_ui.AUTHOR_URL)
 
+    def act_open_update(self):
+        """Release page of the newer version (the button next to the brand)."""
+        webbrowser.open(self.model.update["url"] if self.model.update else simready_update.RELEASES_PAGE)
+
+    def check_updates(self, force):
+        """Ask for a newer release in the background; a forced check ignores the once-a-day rule."""
+        simready_tasks.update_async(self.events, simready_ui.VERSION, prefs.update_state(self.settings), time.time(), force)
+
+    def on_update(self, newer, state, error, forced):
+        """Remember the answer, show or hide the Update button and, after a manual check, say how it went."""
+        if state != prefs.update_state(self.settings):
+            prefs.save(dict(self.settings, **{prefs.UPDATE_STATE_KEY: state}))  # a failed save only means asking again
+            self.settings = dict(self.settings, **{prefs.UPDATE_STATE_KEY: state})
+        self.model.update = newer
+        brand = self.panels[ID_BRAND]
+        if brand.min_width != brand.wanted_width():
+            brand.min_width = brand.wanted_width()
+            self.LayoutChanged(ID_HEADER)
+        brand.refresh()
+        if newer:
+            self.status("%s %s is available: click Update in the header" % (simready_ui.BRAND_NAME, newer["version"]))
+        elif forced:
+            self.status("Could not check for updates: " + error if error else
+                        "%s %s is up to date" % (simready_ui.BRAND_NAME, simready_ui.VERSION))
+
     def act_open_notices(self):
         webbrowser.open(NOTICES_URL)
 
@@ -783,7 +813,7 @@ class BrowserDialog(gui.GeDialog):
         folder = self.download_dir
         free = prefs.free_bytes(folder)
         shown = folder if len(folder) <= PATH_MENU_CHARS else "..." + folder[-(PATH_MENU_CHARS - 3):]
-        return [(INFO_ROW + 3, "%s v%s&d&" % (simready_ui.PRODUCT_NAME, simready_ui.VERSION)),
+        return [(INFO_ROW + 3, "%s v%s&d&" % (simready_ui.PRODUCT_NAME, simready_ui.VERSION))] + self.update_entries() + [
                 (0, ""),
                 (INFO_ROW, "Download folder: %s&d&" % shown),
                 (INFO_ROW + 1, "Free space on that drive: %s&d&" % (cat.format_bytes(free, 1) or "unknown")),
@@ -801,6 +831,13 @@ class BrowserDialog(gui.GeDialog):
                 (0, ""),
                 (INFO_ROW + 2, "Materials for:&d&")] + self.target_entries() + [
                 (TOGGLE_OPENPBR, "Prefer OpenPBR (Redshift, Arnold, V-Ray)" + checked(prefs.prefer_openpbr(self.settings)))]
+
+    def update_entries(self):
+        """Update items under the version row: the newer release when known, a manual check, the switch."""
+        newer = self.model.update
+        entries = [(OPEN_UPDATE, "Download %s %s..." % (simready_ui.BRAND_NAME, newer["version"]))] if newer else []
+        return entries + [(CHECK_UPDATES, "Check for updates now"),
+                          (TOGGLE_UPDATES, "Check for updates on start" + checked(prefs.updates_enabled(self.settings)))]
 
     def rig_entry(self):
         """Menu item of the rig switch; greyed out without the tidy-up, which resolves the joints it needs."""
@@ -822,13 +859,20 @@ class BrowserDialog(gui.GeDialog):
                    TOGGLE_PHONG: lambda: self.toggle_flag(prefs.PHONG_KEY, prefs.phong_enabled, "Area Weighted Phong normals"),
                    TOGGLE_SPLIT: lambda: self.toggle_flag(prefs.SPLIT_KEY, prefs.split_enabled, "Split one-mesh models by material"),
                    TOGGLE_LAYERS: lambda: self.toggle_flag(prefs.LAYERS_KEY, prefs.layers_enabled, "Layer per imported asset"),
-                   TOGGLE_ROUND: lambda: self.toggle_flag(prefs.ROUND_KEY, prefs.round_enabled, ROUND_LABEL)}
+                   TOGGLE_ROUND: lambda: self.toggle_flag(prefs.ROUND_KEY, prefs.round_enabled, ROUND_LABEL),
+                   CHECK_UPDATES: self.check_updates_now, OPEN_UPDATE: self.act_open_update,
+                   TOGGLE_UPDATES: lambda: self.toggle_flag(prefs.UPDATES_KEY, prefs.updates_enabled, "Check for updates on start")}
         if TARGET_BASE <= choice < TARGET_BASE + len(TARGET_CHOICES):
             self.set_material_target(TARGET_CHOICES[choice - TARGET_BASE])
             return
         action = actions.get(choice)
         if action:
             action()
+
+    def check_updates_now(self):
+        """Settings > Check for updates now."""
+        self.status("Checking for updates...")
+        self.check_updates(force=True)
 
     def save_settings(self, updated, message):
         """Persist updated settings and show message; keep the old settings when the file cannot be written."""

@@ -30,14 +30,29 @@ class StripPanel(ui.Panel):
 
 
 class BrandPanel(StripPanel):
-    """Product name at the left edge; a link to the author's site (underlined while hovered)."""
+    """Product name at the left edge, a link to the author's site; an "Update x.y.z" button when one is out."""
 
-    min_width = 190
+    BASE_WIDTH = 190
+    UPDATE_WIDTH = 104  # room for the update button right of the name
     LINK_LEFT = 32
+
+    def __init__(self, act, model):
+        super().__init__(act)
+        self.model = model
+        self.min_width = self.BASE_WIDTH
+
+    def wanted_width(self):
+        """Width the strip needs: wider while an update is announced."""
+        return self.BASE_WIDTH + (self.UPDATE_WIDTH if self.model.update else 0)
 
     def strip_items(self, width):
         # only the label is the link, so a click on the empty strip next to it does nothing
-        return [layout.Item("brand", (0, 0, min(width, self.min_width), layout.HEADER_H), None)]
+        items = [layout.Item("brand", (0, 0, min(width, self.BASE_WIDTH), layout.HEADER_H), None)]
+        if self.model.update:
+            top = layout.HEADER_H // 2 - 12
+            items.append(layout.Item("update", (self.BASE_WIDTH - 4, top, self.BASE_WIDTH + self.UPDATE_WIDTH - 12, top + 24),
+                                     self.model.update))
+        return items
 
     def draw_brand(self, rect, data):
         cy = layout.HEADER_H // 2
@@ -45,19 +60,28 @@ class BrandPanel(StripPanel):
         name_width = self.text_width(ui.BRAND_NAME, c4d.FONT_BOLD)
         self.text(ui.BRAND_NAME, self.LINK_LEFT, cy, ui.TEXT, ui.BG, c4d.FONT_BOLD)
         self.text(" " + ui.BRAND_BY, self.LINK_LEFT + name_width, cy, ui.BRAND_DIM, ui.BG, c4d.FONT_BOLD)
-        if self.hovered:
+        if self.hovered and self.hovered[0] == "brand":  # hovered is (kind, repr(data))
             right = self.LINK_LEFT + name_width + self.text_width(" " + ui.BRAND_BY, c4d.FONT_BOLD)
             self.fill((self.LINK_LEFT, cy + 9, right, cy + 9), ui.ACCENT)
+
+    def draw_update(self, rect, data):
+        hovered = bool(self.hovered) and self.hovered[0] == "update"
+        self.pill(rect, "Update " + data["version"], ui.ON_ACCENT if hovered else ui.ACCENT, ui.ACCENT,
+                  ui.ACCENT if hovered else None)
 
     def on_hover(self, item):
         self.Redraw()
 
     def tooltip(self, item):
-        return ui.AUTHOR_URL if item is not None else None
+        if item is None:
+            return None
+        if item.kind == "update":
+            return "SimRCL %s is out: open the release page (install it with INSTALL.bat)" % item.data["version"]
+        return ui.AUTHOR_URL
 
     def on_click(self, item, x, y, msg):
         if item is not None:
-            self.act("open_author")
+            self.act("open_update" if item.kind == "update" else "open_author")
 
 
 class ModePanel(StripPanel):

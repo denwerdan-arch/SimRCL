@@ -20,6 +20,7 @@ Portable, standard library only, no Cinema 4D (reuse as they are):
 | `simready_material_spec.py` | renderer-independent reading of an inspected UsdPreviewSurface material |
 | `simready_inspect.py` | runs in a separate Python with `usd-core`; prints JSON: meshes, GeomSubsets, materials, joints, xforms, up axis, metersPerUnit |
 | `simready_runtime.py` | finds a system Python, installs `usd-core` into a private folder, runs the inspector |
+| `simready_update.py` | asks GitHub's releases API (at most once a day) whether a newer SimRCL is out |
 | `simready_agent.py` | short text answers for agents (find, info, fetch, status, add); only `add` needs Cinema 4D |
 | `simready_layout.py` | pure geometry of the panels (only useful if you rebuild the same UI) |
 

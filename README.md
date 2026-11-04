@@ -45,6 +45,7 @@ Manual install: Edit > Preferences > Open Preferences Folder > `plugins`, copy t
   - texture repeat from USD with UV controls on the model (Auto / Custom / Off);
   - Round corners on the model for Redshift, Arnold and V-Ray (off until switched on, default radius 0.1 cm).
 - Licensing guide (English and Russian) in the Settings menu.
+- Update check: once a day the window asks GitHub for a newer release and shows an "Update" button next to the name (Settings: "Check for updates now", "Check for updates on start"). The request goes to api.github.com and carries nothing about you or your scenes.
 - For AI agents: `simready_agent.py` (search, download, import with short text answers), [AGENTS.md](AGENTS.md) (how the code works, how to port it) and a [skill](for_agents/skills/simrcl-cinema4d/SKILL.md).
 
 ## Requirements

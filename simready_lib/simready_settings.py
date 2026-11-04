@@ -24,6 +24,8 @@ PHONG_KEY = "area_weighted_phong"
 SPLIT_KEY = "split_multi_material"
 LAYERS_KEY = "asset_layers"
 ROUND_KEY = "round_corners"
+UPDATES_KEY = "check_updates"
+UPDATE_STATE_KEY = "update_state"  # {last_check, latest}: the last answer of simready_update.check
 
 
 def load(path=SETTINGS_PATH):
@@ -93,6 +95,17 @@ def layers_enabled(settings):
 def round_enabled(settings):
     """Whether imports get render-time round corners controls (off on the model until switched on); on by default."""
     return settings.get(ROUND_KEY, True) is not False
+
+
+def updates_enabled(settings):
+    """Whether the window asks GitHub for a newer release when it opens (once a day); on by default."""
+    return settings.get(UPDATES_KEY, True) is not False
+
+
+def update_state(settings):
+    """The cached answer of the last update check, {} when there was none."""
+    state = settings.get(UPDATE_STATE_KEY)
+    return state if isinstance(state, dict) else {}
 
 
 def with_flag(settings, key, enabled):

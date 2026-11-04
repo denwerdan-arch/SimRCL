@@ -12,6 +12,7 @@ import simready_catalog
 import simready_client
 import simready_library
 import simready_media
+import simready_update
 
 NETWORK_ERRORS = (OSError, ValueError, KeyError)
 IMAGE_WORKERS = 6
@@ -165,6 +166,13 @@ def previews_async(events, cache_dir, max_bytes, clear=False):
         else:
             simready_media.prune_previews(cache_dir, max_bytes)
         events.put(("previews", 0, clear, simready_media.preview_usage(cache_dir)[1]))
+    _spawn(work)
+
+
+def update_async(events, local_version, state, now, force=False):
+    """Publish ('update', 0, newer release or None, new state, error, force) from simready_update.check."""
+    def work():
+        events.put(("update", 0) + simready_update.check(local_version, state, now, force) + (force,))
     _spawn(work)
 
 
