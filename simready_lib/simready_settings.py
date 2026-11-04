@@ -99,8 +99,8 @@ def round_enabled(settings):
 
 
 def weld_enabled(settings):
-    """Whether imports weld meshes that arrive as loose triangles (STL conversions); on by default."""
-    return settings.get(WELD_KEY, True) is not False
+    """Whether imports weld meshes that arrive as loose triangles (STL conversions); off unless switched on."""
+    return settings.get(WELD_KEY, False) is True
 
 
 def updates_enabled(settings):

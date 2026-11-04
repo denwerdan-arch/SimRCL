@@ -54,7 +54,9 @@ Licences: `ALLOWED_LICENSES` in `simready_client.py` is the policy (CC-BY-4.0 sp
 6a. Axes (`simready_axes`): many assets store parts with identity transforms and points in model space, so every pivot sits at the origin; move those pivots to the part's centre, keep authored ones.
 7. Hierarchy from joints (`simready_hierarchy`): physics joints say which part carries which; parent accordingly and put each moving part's pivot on its joint anchor. A joint can point at a mesh, a group or an instance whose mesh name differs from the joint's; `resolve_body` falls back to the parent Xform.
 8. Colliders (`simready_colliders`): `Colliders` groups stay, hidden in viewport and render.
-8a. Weld (`simready_weld`): STL conversions store every triangle with its own points; join coincident points (Optimize, points only, tolerance 1e-6 of the bounding diagonal) when at least 30 % are duplicates, before the split, which decides by shared points.
+8a. Weld (`simready_weld`, off by default): STL conversions store every triangle with its own points; join coincident points (Optimize, points only, tolerance 1e-6 of the bounding diagonal) when at least 30 % are duplicates, before the split, which decides by shared points.
+
+N-gons: C4D splits USD faces with 5+ corners into several polygons, so face indices from the inspector shift. `simready_ngons.matched_spec` remaps them through the polygon translation map (pieces of one n-gon are consecutive and share one entry); materials and joints use it.
 9. Split (`simready_split`): a one-mesh model with several materials becomes one object per material, only if the material parts share no points (otherwise it would tear) and never for models with joints.
 10. Normals (`simready_shading`): area-weighted smoothing; uniform smoothing shows bands on long thin triangles.
 11. Units: SimReady is metres, Z up (`up_axis`, `meters_per_unit` in the JSON). Bake the scale into the geometry so the group keeps scale 1.

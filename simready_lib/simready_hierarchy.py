@@ -7,15 +7,16 @@ parenting lets the user move or rotate a part together with everything attached 
 import c4d
 
 import simready_cleanup
+import simready_ngons
 
 
 def mesh_index(meshes, spec):
-    """{USD mesh path: polygon object} for the meshes whose face count matches the inspected USD mesh.
+    """{USD mesh path: polygon object} for the meshes that match the inspected USD mesh (split n-gons allowed).
 
     meshes must be in the traversal order of spec["meshes"]; call it before the hierarchy is tidied.
     """
     return {mesh_spec["path"]: mesh for mesh, mesh_spec in zip(meshes, spec["meshes"])
-            if mesh.GetPolygonCount() == mesh_spec["faces"]}
+            if simready_ngons.matched_spec(mesh, mesh_spec) is not None}
 
 
 def is_ancestor(candidate, obj):

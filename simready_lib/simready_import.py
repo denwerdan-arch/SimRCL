@@ -34,6 +34,7 @@ import simready_colliders
 import simready_hierarchy
 import simready_material_spec
 import simready_materials
+import simready_ngons
 import simready_render_target
 import simready_layers
 import simready_rig
@@ -179,14 +180,14 @@ def create_materials(spec, choice):
 def build_visual_materials(group, spec, choice):
     """Create the visual materials of spec for the renderer in choice and bind them to the meshes under group.
 
-    Returns (materials, notes). Meshes whose face count differs from the USD mesh are skipped,
-    because face indices would then point at the wrong polygons.
+    Returns (materials, notes). Face indices are remapped where the importer split n-gons; a mesh that still
+    does not match its USD mesh is skipped, because the indices would point at the wrong polygons.
     """
     materials, notes = create_materials(spec, choice)
     for mesh, mesh_spec in zip(polygon_objects(group), spec["meshes"]):
-        if mesh.GetPolygonCount() != mesh_spec["faces"]:
-            continue
-        simready_materials.assign_materials(mesh, mesh_spec, materials)
+        matched = simready_ngons.matched_spec(mesh, mesh_spec)
+        if matched is not None:
+            simready_materials.assign_materials(mesh, matched, materials)
     return list(materials.values()), notes
 
 

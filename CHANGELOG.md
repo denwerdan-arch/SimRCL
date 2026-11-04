@@ -2,7 +2,8 @@
 
 ## 1.2.1
 
-- Meshes that arrive as loose triangles are welded on import. Some assets were converted from STL, where every triangle has its own three points (Menlo's Asimov humanoid: 2 877 108 points for 473 913 positions), so nothing was connected: cylinders rendered faceted and selections stopped at each triangle. Coincident points are now joined with a tolerance far below the model's detail; polygons, UVs, vertex colours, selections and materials stay as they were. Only meshes where at least 30 % of the points are duplicates are touched. Settings: "Weld loose triangles (STL-style meshes)", on by default. Models imported before keep their loose triangles; import them again (or select the meshes and run Mesh > Commands > Optimize with points only).
+- Meshes that arrive as loose triangles are welded on import. Some assets were converted from STL, where every triangle has its own three points (Menlo's Asimov humanoid: 2 877 108 points for 473 913 positions), so nothing was connected: cylinders rendered faceted and selections stopped at each triangle. Coincident points are now joined with a tolerance far below the model's detail; polygons, UVs, vertex colours, selections and materials stay as they were. Only meshes where at least 30 % of the points are duplicates are touched. Off by default; switch it on in Settings: "Weld loose triangles (STL-style meshes)". Models imported before keep their loose triangles; import them again with the switch on (or select the meshes and run Mesh > Commands > Optimize with points only).
+- Fixed: models with faces of five or more corners came in without materials (the NVIDIA warehouse office chair: 13 083 USD faces became 13 089 polygons, so the material subsets no longer matched and were skipped). Face indices are now mapped onto the polygons Cinema 4D made from each n-gon; the same mapping lets such meshes take part in the hierarchy from joints.
 
 ## 1.2.0
 
