@@ -75,7 +75,8 @@ function Install-Runtime {
     $python = Find-Python
     if ($null -eq $python) {
         Say 'Python 3 was not found. SimRCL needs it to read USD files:' 'Yellow'
-        Say '  install it from https://www.python.org/downloads/ with "Add python.exe to PATH" ticked,' 'Yellow'
+        Say '  python.org/downloads/windows > Latest Python 3 Release > "Windows installer (64-bit)",' 'Yellow'
+        Say '  and on its first screen tick "Add python.exe to PATH",' 'Yellow'
         Say '  then run INSTALL.bat again (or just import: SimRCL sets itself up on the first import).' 'Yellow'
         return
     }
