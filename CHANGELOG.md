@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1
+
+- Meshes that arrive as loose triangles are welded on import. Some assets were converted from STL, where every triangle has its own three points (Menlo's Asimov humanoid: 2 877 108 points for 473 913 positions), so nothing was connected: cylinders rendered faceted and selections stopped at each triangle. Coincident points are now joined with a tolerance far below the model's detail; polygons, UVs, vertex colours, selections and materials stay as they were. Only meshes where at least 30 % of the points are duplicates are touched. Settings: "Weld loose triangles (STL-style meshes)", on by default. Models imported before keep their loose triangles; import them again (or select the meshes and run Mesh > Commands > Optimize with points only).
+
 ## 1.2.0
 
 - Update check: when the window opens (at most once a day) SimRCL asks GitHub whether a newer release is out and shows an "Update x.y.z" button next to its name; a click opens the release page (install it with its INSTALL.bat). Settings: "Check for updates now", "Check for updates on start" (on by default). The request goes to api.github.com and carries nothing about you or your scenes; without internet nothing changes.

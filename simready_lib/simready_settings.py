@@ -25,6 +25,7 @@ SPLIT_KEY = "split_multi_material"
 LAYERS_KEY = "asset_layers"
 ROUND_KEY = "round_corners"
 UPDATES_KEY = "check_updates"
+WELD_KEY = "weld_loose_meshes"
 UPDATE_STATE_KEY = "update_state"  # {last_check, latest}: the last answer of simready_update.check
 
 
@@ -95,6 +96,11 @@ def layers_enabled(settings):
 def round_enabled(settings):
     """Whether imports get render-time round corners controls (off on the model until switched on); on by default."""
     return settings.get(ROUND_KEY, True) is not False
+
+
+def weld_enabled(settings):
+    """Whether imports weld meshes that arrive as loose triangles (STL conversions); on by default."""
+    return settings.get(WELD_KEY, True) is not False
 
 
 def updates_enabled(settings):

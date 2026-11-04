@@ -175,7 +175,7 @@ def _import_options():
     prefs = settings.load()
     return dict(tidy=settings.tidy_enabled(prefs), rig=settings.rig_enabled(prefs), phong=settings.phong_enabled(prefs),
                 split=settings.split_enabled(prefs), layers=settings.layers_enabled(prefs),
-                round_corners=settings.round_enabled(prefs))
+                round_corners=settings.round_enabled(prefs), weld=settings.weld_enabled(prefs))
 
 
 def _boxes(obj):

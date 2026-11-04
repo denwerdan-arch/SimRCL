@@ -68,6 +68,7 @@ Manual install: Edit > Preferences > Open Preferences Folder > `plugins`, copy t
   - clean hierarchy, parts parented through the asset's physics joints, axes on the joints;
   - controls for moving parts (rotate or slide within the joint's limits);
   - scale baked into the geometry, Area Weighted Phong normals, colliders hidden, one layer per asset;
+  - meshes made of loose triangles (STL conversions) welded into connected surfaces;
   - one-mesh models split into one object per material (only when the parts of different materials share no points);
   - materials for Redshift, Standard, Arnold and V-Ray, OpenPBR where the renderer has it;
   - texture repeat from USD with UV controls on the model (Auto / Custom / Off);

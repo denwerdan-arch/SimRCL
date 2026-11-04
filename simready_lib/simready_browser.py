@@ -54,6 +54,8 @@ TOGGLE_SPLIT = MENU_BASE + 8
 TOGGLE_LAYERS = MENU_BASE + 9
 TOGGLE_ROUND = MENU_BASE + 15  # + 10 .. + 13 are the info rows
 CHECK_UPDATES, TOGGLE_UPDATES, OPEN_UPDATE = MENU_BASE + 16, MENU_BASE + 17, MENU_BASE + 18
+TOGGLE_WELD = MENU_BASE + 19
+WELD_LABEL = "Weld loose triangles (STL-style meshes)"
 ROUND_LABEL = "Round corners controls (Redshift, Arnold, V-Ray)"
 MODE_INFO_BASE = MENU_BASE + 50  # greyed description rows of the mode menu
 TARGET_BASE = MENU_BASE + 20  # TARGET_BASE + index into TARGET_CHOICES
@@ -825,6 +827,7 @@ class BrowserDialog(gui.GeDialog):
                 (TOGGLE_TIDY, "Tidy hierarchy on import" + checked(prefs.tidy_enabled(self.settings))),
                 self.rig_entry(),
                 (TOGGLE_PHONG, "Area Weighted Phong normals" + checked(prefs.phong_enabled(self.settings))),
+                (TOGGLE_WELD, WELD_LABEL + checked(prefs.weld_enabled(self.settings))),
                 (TOGGLE_SPLIT, "Split one-mesh models by material" + checked(prefs.split_enabled(self.settings))),
                 (TOGGLE_LAYERS, "Layer per imported asset" + checked(prefs.layers_enabled(self.settings))),
                 (TOGGLE_ROUND, ROUND_LABEL + checked(prefs.round_enabled(self.settings))),
@@ -861,6 +864,7 @@ class BrowserDialog(gui.GeDialog):
                    TOGGLE_LAYERS: lambda: self.toggle_flag(prefs.LAYERS_KEY, prefs.layers_enabled, "Layer per imported asset"),
                    TOGGLE_ROUND: lambda: self.toggle_flag(prefs.ROUND_KEY, prefs.round_enabled, ROUND_LABEL),
                    CHECK_UPDATES: self.check_updates_now, OPEN_UPDATE: self.act_open_update,
+                   TOGGLE_WELD: lambda: self.toggle_flag(prefs.WELD_KEY, prefs.weld_enabled, WELD_LABEL),
                    TOGGLE_UPDATES: lambda: self.toggle_flag(prefs.UPDATES_KEY, prefs.updates_enabled, "Check for updates on start")}
         if TARGET_BASE <= choice < TARGET_BASE + len(TARGET_CHOICES):
             self.set_material_target(TARGET_CHOICES[choice - TARGET_BASE])
@@ -1105,7 +1109,7 @@ class BrowserDialog(gui.GeDialog):
             documents.GetActiveDocument(), usd_path, inspected, tidy=prefs.tidy_enabled(self.settings), choice=choice,
             rig=prefs.rig_enabled(self.settings), phong=prefs.phong_enabled(self.settings),
             split=prefs.split_enabled(self.settings), layers=prefs.layers_enabled(self.settings),
-            round_corners=prefs.round_enabled(self.settings))
+            round_corners=prefs.round_enabled(self.settings), weld=prefs.weld_enabled(self.settings))
         c4d.EventAdd()
         self.finish_install()
         self.status(import_summary(group, counts, choice, warning) if group else warning or "Could not load " + usd_path)

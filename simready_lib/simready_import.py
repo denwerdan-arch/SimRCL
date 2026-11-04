@@ -41,6 +41,7 @@ import simready_roundcorners
 import simready_shading
 import simready_split
 import simready_uvscale
+import simready_weld
 import simready_xforms
 import simready_runtime
 import simready_settings
@@ -273,7 +274,7 @@ def add_model_controls(doc, group, tiled, kinds):
 
 
 def import_asset(doc, path, inspected=None, tidy=True, choice=None, rig=True, phong=True, split=True, layers=True,
-                 round_corners=True):
+                 round_corners=True, weld=True):
     """Import the USD file at path into doc as one named group.
 
     inspected is an optional (spec, warning) pair from inspect_safely, computed earlier off the main
@@ -284,7 +285,8 @@ def import_asset(doc, path, inspected=None, tidy=True, choice=None, rig=True, ph
     one mesh with separate parts per material into one object per material (simready_split). Returns
     (group, warning, (objects_before, objects_after)); group is None if the file could not be loaded.
     layers puts the asset and its materials on a layer of their own. round_corners adds render-time rounded
-    edges, off until switched on in the group's user data (simready_roundcorners).
+    edges, off until switched on in the group's user data (simready_roundcorners). weld joins the coincident
+    points of meshes that arrive as loose triangles (STL conversions, simready_weld).
     """
     src = load_detached(path)
     if src is None:
@@ -303,6 +305,8 @@ def import_asset(doc, path, inspected=None, tidy=True, choice=None, rig=True, ph
     # Cleaning runs after the materials are bound: they are matched to meshes by the importer's traversal order.
     counts, moving = tidy_group(group, spec) if tidy else untidy_counts(group)
     colliders = simready_colliders.hidden_note(simready_colliders.hide_colliders(group))
+    # before the split: it decides by shared points, and loose triangles share none
+    welded = simready_weld.note(simready_weld.weld_loose_meshes(group)) if weld else ""
     # a moving part is referenced by its joint; splitting it would leave the controls on a deleted mesh
     pieces = simready_split.split_single_mesh(group, visual) if split and visual and not moving else 0
     if phong:
@@ -317,7 +321,7 @@ def import_asset(doc, path, inspected=None, tidy=True, choice=None, rig=True, ph
     fixes = "%d transforms corrected" % len(repaired) if repaired else ""
     split_note = "split into %d single-material objects" % pieces if pieces else ""
     rounding = simready_roundcorners.note(round_corners, kinds, bool(visual))
-    return group, join_warnings(warning, choice.note, notes, fixes, split_note, colliders, rounding,
+    return group, join_warnings(warning, choice.note, notes, fixes, welded, split_note, colliders, rounding,
                                 simready_rig.controls_note(controls)), counts
 
 
