@@ -21,13 +21,13 @@ import simready_tagcode as tagcode
 # Private container ids on materials: which kind of rounding it carries and the settings last written.
 KIND, STATE = 1063910, 1063911
 VRAY, REDSHIFT, ARNOLD, OCTANE = 1, 2, 3, 4
-VRAY_MATERIAL, OCTANE_MATERIAL = 1053286, 1029501
+VRAY_MATERIAL, OCTANE_MATERIALS = 1053286, (1029501, 1066802)  # Octane Universal and OpenPBR surface
 RS_SPACE, AR_SPACE = "com.redshift3d.redshift4c4d.class.nodespace", "com.autodesk.arnold.nodespace"
 RS_NODE, AR_NODE = "com.redshift3d.redshift4c4d.nodes.core.roundcorners", "com.autodesk.arnold.shader.round_corners"
 # V-Ray Material > Options > Round Edges (ids are hashes of V-Ray's parameter names, checked in V-Ray 7).
 VRAY_ON, VRAY_RADIUS, VRAY_SAME, VRAY_CORNERS = 1343838313, 9461143, 574351844, 1459651148
 # Octane Material > Round edges link, and its Round edges shader (OctaneRender for Cinema 4D 2027.1).
-OCTANE_LINK, OCTANE_ROUND, OCTANE_MODE, OCTANE_RADIUS, OCTANE_OTHERS, OCTANE_FAST = 2582, 1053013, 2603, 2600, 2605, 1
+OCTANE_ROUND, OCTANE_MODE, OCTANE_RADIUS, OCTANE_OTHERS, OCTANE_FAST = 1053013, 2603, 2600, 2605, 1
 CORNERS = ("Convex and Concave", "Convex Only", "Concave Only")
 DEFAULT_RADIUS_M = 0.001  # 0.1 cm
 SLIDER_SPAN = 20  # the slider reaches 20 x the default radius (2 cm); larger values can be typed
@@ -48,13 +48,20 @@ def _has_node(material, space, asset):
     return bool(found)
 
 
+def octane_round(material):
+    """The Round edges shader of an Octane material (Universal links it to a slot, OpenPBR to a pin)."""
+    shader = material.GetFirstShader()
+    while shader is not None and shader.GetType() != OCTANE_ROUND:
+        shader = shader.GetNext()
+    return shader
+
+
 def kind_of(material):
     """VRAY, REDSHIFT, ARNOLD or OCTANE when the material can round its edges, else None."""
     if material.GetType() == VRAY_MATERIAL:
         return VRAY
-    if material.GetType() == OCTANE_MATERIAL:
-        shader = material[OCTANE_LINK]
-        return OCTANE if shader is not None and shader.GetType() == OCTANE_ROUND else None
+    if material.GetType() in OCTANE_MATERIALS:
+        return OCTANE if octane_round(material) is not None else None
     if _has_node(material, RS_SPACE, RS_NODE):
         return REDSHIFT
     if _has_node(material, AR_SPACE, AR_NODE):
@@ -93,8 +100,8 @@ KIND, STATE = __KIND__, __STATE__
 VRAY, REDSHIFT, ARNOLD, OCTANE = __VRAY__, __REDSHIFT__, __ARNOLD__, __OCTANE__
 ON, RADIUS, SAME, CORNERS = __ON__, __RADIUS__, __SAME__, __CORNERS__
 VRAY_ON, VRAY_RADIUS, VRAY_SAME, VRAY_CORNERS = __VRAY_ON__, __VRAY_RADIUS__, __VRAY_SAME__, __VRAY_CORNERS__
-OCTANE_LINK, OCTANE_MODE, OCTANE_RADIUS, OCTANE_OTHERS, OCTANE_FAST = (
-    __OCTANE_LINK__, __OCTANE_MODE__, __OCTANE_RADIUS__, __OCTANE_OTHERS__, __OCTANE_FAST__)
+OCTANE_ROUND, OCTANE_MODE, OCTANE_RADIUS, OCTANE_OTHERS, OCTANE_FAST = (
+    __OCTANE_ROUND__, __OCTANE_MODE__, __OCTANE_RADIUS__, __OCTANE_OTHERS__, __OCTANE_FAST__)
 NODES = {REDSHIFT: ("__RS_SPACE__", "__RS_NODE__", "radius", "sameobjectonly"),
          ARNOLD: ("__AR_SPACE__", "__AR_NODE__", "radius", "self_only")}
 # Arnold shader node -> its normal input; the round node is wired into it only while rounding is on
@@ -184,7 +191,12 @@ def write_vray(material, values):
 
 def write_octane(material, values):
     on, radius, same, _ = values
-    shader = material[OCTANE_LINK]
+    # found among the material's shaders: Universal links it to a slot, OpenPBR to a pin
+    shader = material.GetFirstShader()
+    while shader is not None and shader.GetType() != OCTANE_ROUND:
+        shader = shader.GetNext()
+    if shader is None:
+        return
     shader[OCTANE_MODE] = OCTANE_FAST if on else 0  # 0 is Off
     shader[OCTANE_RADIUS], shader[OCTANE_OTHERS] = float(radius), not same
 
@@ -220,7 +232,7 @@ def pending(root):
 def tag_code(ids):
     """The Python tag source for the user data ids {'on', 'radius', 'same', 'corners'} (corners may be 0)."""
     values = dict(KIND=KIND, STATE=STATE, VRAY=VRAY, REDSHIFT=REDSHIFT, ARNOLD=ARNOLD, OCTANE=OCTANE,
-                  OCTANE_LINK=OCTANE_LINK, OCTANE_MODE=OCTANE_MODE, OCTANE_RADIUS=OCTANE_RADIUS,
+                  OCTANE_ROUND=OCTANE_ROUND, OCTANE_MODE=OCTANE_MODE, OCTANE_RADIUS=OCTANE_RADIUS,
                   OCTANE_OTHERS=OCTANE_OTHERS, OCTANE_FAST=OCTANE_FAST, VRAY_ON=VRAY_ON,
                   VRAY_RADIUS=VRAY_RADIUS, VRAY_SAME=VRAY_SAME, VRAY_CORNERS=VRAY_CORNERS, RS_SPACE=RS_SPACE,
                   RS_NODE=RS_NODE, AR_SPACE=AR_SPACE, AR_NODE=AR_NODE)

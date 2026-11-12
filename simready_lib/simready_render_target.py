@@ -4,6 +4,7 @@ A target is chosen in the settings menu or follows the render engine of the acti
 A renderer that is not installed falls back to the Standard material, which every Cinema 4D has.
 """
 import collections
+import importlib
 
 import c4d
 
@@ -16,7 +17,10 @@ ENGINE_TARGETS = {1036219: REDSHIFT, 0: STANDARD, 1023342: STANDARD, 300001061: 
                   1029525: OCTANE}
 # The video post plugin that proves a renderer is installed (Standard is built in).
 ENGINE_PLUGINS = {REDSHIFT: 1036219, ARNOLD: 1029988, VRAY: 1053272, OCTANE: 1029525}
-OPENPBR_TARGETS = (REDSHIFT, ARNOLD, VRAY)  # the renderers that ship an OpenPBR shader or mode (not Octane's classic material)
+OPENPBR_TARGETS = (REDSHIFT, ARNOLD, VRAY, OCTANE)  # the renderers that ship an OpenPBR shader, mode or material
+
+# Backends whose OpenPBR depends on the renderer's version; imported late, only when asked.
+OPENPBR_PROBES = {VRAY: "simready_mat_vray", OCTANE: "simready_mat_octane"}
 
 # round_corners: build the round corners nodes the model's controls drive (simready_roundcorners).
 Choice = collections.namedtuple("Choice", "target openpbr note round_corners", defaults=(False,))
@@ -41,13 +45,11 @@ def requested_target(setting, doc):
 
 
 def openpbr_available(target):
-    """True when the renderer of target offers OpenPBR in this installation (older V-Ray builds have no such mode)."""
+    """True when the renderer of target offers OpenPBR in this installation (older V-Ray and Octane builds do not)."""
     if target not in OPENPBR_TARGETS or not is_installed(target):
         return False
-    if target != VRAY:
-        return True
-    import simready_mat_vray  # imported late: only V-Ray needs the probe
-    return simready_mat_vray.has_openpbr()
+    probe = OPENPBR_PROBES.get(target)
+    return probe is None or importlib.import_module(probe).has_openpbr()
 
 
 def resolve(setting, prefer_openpbr, doc):
