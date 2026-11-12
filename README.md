@@ -5,7 +5,7 @@ SimReady Central Library: a browser and importer for NVIDIA SimReady assets insi
 Latest version: see [Releases](https://github.com/denwerdan-arch/SimRCL/releases/latest). Code license: MIT. Every asset has its own license (see below).
 Author: Dead_wall, https://trycad.online/?lang=en
 
-SimRCL is an independent project. It is not made, endorsed or supported by NVIDIA, Maxon, Redshift, Autodesk or Chaos.
+SimRCL is an independent project. It is not made, endorsed or supported by NVIDIA, Maxon, Redshift, Autodesk, Chaos or OTOY.
 
 ## Установка (Windows)
 
@@ -70,9 +70,9 @@ Manual install: Edit > Preferences > Open Preferences Folder > `plugins`, copy t
   - scale baked into the geometry, Area Weighted Phong normals, colliders hidden, one layer per asset;
   - optional: meshes made of loose triangles (STL conversions) welded into connected surfaces (Settings, off by default);
   - one-mesh models split into one object per material (only when the parts of different materials share no points);
-  - materials for Redshift, Standard, Arnold and V-Ray, OpenPBR where the renderer has it;
+  - materials for Redshift, Standard, Arnold, V-Ray and Octane, OpenPBR where the renderer has it;
   - texture repeat from USD with UV controls on the model (Auto / Custom / Off);
-  - Round corners on the model for Redshift, Arnold and V-Ray (off until switched on, default radius 0.1 cm).
+  - Round corners on the model for Redshift, Arnold, V-Ray and Octane (off until switched on, default radius 0.1 cm).
 - Licensing guide (English and Russian) in the Settings menu.
 - Update check: once a day the window asks GitHub for a newer release and shows an "Update" button next to the name (Settings: "Check for updates now", "Check for updates on start"). The request goes to api.github.com and carries nothing about you or your scenes.
 - For AI agents: `simready_agent.py` (search, download, import with short text answers), [AGENTS.md](AGENTS.md) (how the code works, how to port it) and a [skill](for_agents/skills/simrcl-cinema4d/SKILL.md).

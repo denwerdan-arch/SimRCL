@@ -7,15 +7,16 @@ import collections
 
 import c4d
 
-REDSHIFT, STANDARD, ARNOLD, VRAY = "redshift", "standard", "arnold", "vray"
+REDSHIFT, STANDARD, ARNOLD, VRAY, OCTANE = "redshift", "standard", "arnold", "vray", "octane"
 AUTO = "auto"
-TARGETS = (REDSHIFT, STANDARD, ARNOLD, VRAY)
-LABELS = {REDSHIFT: "Redshift", STANDARD: "Standard", ARNOLD: "Arnold", VRAY: "V-Ray"}
+TARGETS = (REDSHIFT, STANDARD, ARNOLD, VRAY, OCTANE)
+LABELS = {REDSHIFT: "Redshift", STANDARD: "Standard", ARNOLD: "Arnold", VRAY: "V-Ray", OCTANE: "Octane"}
 # Render engine id (RDATA_RENDERENGINE) -> target. Physical and the viewport renderer read the same material as Standard.
-ENGINE_TARGETS = {1036219: REDSHIFT, 0: STANDARD, 1023342: STANDARD, 300001061: STANDARD, 1029988: ARNOLD, 1053272: VRAY}
+ENGINE_TARGETS = {1036219: REDSHIFT, 0: STANDARD, 1023342: STANDARD, 300001061: STANDARD, 1029988: ARNOLD, 1053272: VRAY,
+                  1029525: OCTANE}
 # The video post plugin that proves a renderer is installed (Standard is built in).
-ENGINE_PLUGINS = {REDSHIFT: 1036219, ARNOLD: 1029988, VRAY: 1053272}
-OPENPBR_TARGETS = (REDSHIFT, ARNOLD, VRAY)  # the renderers that ship an OpenPBR shader or mode
+ENGINE_PLUGINS = {REDSHIFT: 1036219, ARNOLD: 1029988, VRAY: 1053272, OCTANE: 1029525}
+OPENPBR_TARGETS = (REDSHIFT, ARNOLD, VRAY)  # the renderers that ship an OpenPBR shader or mode (not Octane's classic material)
 
 # round_corners: build the round corners nodes the model's controls drive (simready_roundcorners).
 Choice = collections.namedtuple("Choice", "target openpbr note round_corners", defaults=(False,))

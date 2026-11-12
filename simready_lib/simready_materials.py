@@ -13,7 +13,8 @@ import simready_material_spec as spec_slots
 import simready_render_target as targets
 
 BACKENDS = {targets.REDSHIFT: "simready_mat_redshift", targets.ARNOLD: "simready_mat_arnold",
-            targets.STANDARD: "simready_mat_standard", targets.VRAY: "simready_mat_vray"}
+            targets.STANDARD: "simready_mat_standard", targets.VRAY: "simready_mat_vray",
+            targets.OCTANE: "simready_mat_octane"}
 
 
 def backend(target):

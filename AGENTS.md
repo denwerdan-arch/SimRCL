@@ -26,7 +26,7 @@ Portable, standard library only, no Cinema 4D (reuse as they are):
 
 Cinema 4D specific (rewrite for the target program; keep the order and the reasons below):
 
-`simready_import.py` (pipeline), `simready_xforms.py`, `simready_cleanup.py`, `simready_hierarchy.py`, `simready_axes.py`, `simready_rig.py`, `simready_colliders.py`, `simready_split.py`, `simready_shading.py`, `simready_layers.py`, `simready_materials.py` + `simready_mat_redshift.py` / `_arnold` / `_vray` / `_standard`, `simready_render_target.py`, `simready_uvscale.py`, `simready_roundcorners.py`, `simready_tagcode.py`, all `simready_ui*.py`, `simready_video*.py`, `simready_browser.py`.
+`simready_import.py` (pipeline), `simready_xforms.py`, `simready_cleanup.py`, `simready_hierarchy.py`, `simready_axes.py`, `simready_rig.py`, `simready_colliders.py`, `simready_split.py`, `simready_shading.py`, `simready_layers.py`, `simready_materials.py` + `simready_mat_redshift.py` / `_arnold` / `_vray` / `_octane` / `_standard`, `simready_render_target.py`, `simready_uvscale.py`, `simready_roundcorners.py`, `simready_tagcode.py`, all `simready_ui*.py`, `simready_video*.py`, `simready_browser.py`.
 
 ## The service
 
