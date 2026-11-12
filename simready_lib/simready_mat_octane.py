@@ -30,7 +30,8 @@ IMAGE_RGB, IMAGE_ALPHA = 0, 2
 PICKER_INPUT, PICKER_CHANNEL = 1200, 1201
 RGB_COLOR = 1200
 EMISSION_TEXTURE, EMISSION_POWER, EMISSION_SURFACE_BRIGHTNESS = 2170, 2171, 2175
-ROUND_MODE, ROUND_RADIUS, ROUND_OTHERS, ROUND_OFF = 2603, 2600, 2605, 0
+ROUND_MODE, ROUND_RADIUS, ROUND_OTHERS, ROUND_ROUNDNESS, ROUND_SAMPLES, ROUND_OFF = 2603, 2600, 2605, 2604, 2606, 0
+ROUND_QUALITY = {ROUND_ROUNDNESS: 1.0, ROUND_SAMPLES: 8.0}  # full roundness, 8 samples: clean edges in close-ups
 EXPECTED_LABELS = {TYPE: "Material type", ALBEDO_COLOR: "Color", ALBEDO_TEXTURE: "Texture", METALLIC: "Float",
                    METALLIC_TEXTURE: "Texture", ROUGHNESS: "Float", ROUGHNESS_TEXTURE: "Texture",
                    NORMAL_TEXTURE: "Texture", OPACITY: "Float", OPACITY_TEXTURE: "Texture",
@@ -165,6 +166,8 @@ def _round_edges_shader(material):
     """A Round edges shader switched off; the model's Round corners tag sets mode and radius."""
     shader = _shader(material, ROUND_ID)
     shader[ROUND_MODE], shader[ROUND_RADIUS] = ROUND_OFF, 0.0
+    for param, value in ROUND_QUALITY.items():
+        shader[param] = value
     return shader
 
 

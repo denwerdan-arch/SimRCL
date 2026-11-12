@@ -27,7 +27,7 @@ RS_NODE, AR_NODE = "com.redshift3d.redshift4c4d.nodes.core.roundcorners", "com.a
 # V-Ray Material > Options > Round Edges (ids are hashes of V-Ray's parameter names, checked in V-Ray 7).
 VRAY_ON, VRAY_RADIUS, VRAY_SAME, VRAY_CORNERS = 1343838313, 9461143, 574351844, 1459651148
 # Octane Material > Round edges link, and its Round edges shader (OctaneRender for Cinema 4D 2027.1).
-OCTANE_ROUND, OCTANE_MODE, OCTANE_RADIUS, OCTANE_OTHERS, OCTANE_FAST = 1053013, 2603, 2600, 2605, 1
+OCTANE_ROUND, OCTANE_MODE, OCTANE_RADIUS, OCTANE_OTHERS, OCTANE_ACCURATE = 1053013, 2603, 2600, 2605, 2
 CORNERS = ("Convex and Concave", "Convex Only", "Concave Only")
 DEFAULT_RADIUS_M = 0.001  # 0.1 cm
 SLIDER_SPAN = 20  # the slider reaches 20 x the default radius (2 cm); larger values can be typed
@@ -100,8 +100,8 @@ KIND, STATE = __KIND__, __STATE__
 VRAY, REDSHIFT, ARNOLD, OCTANE = __VRAY__, __REDSHIFT__, __ARNOLD__, __OCTANE__
 ON, RADIUS, SAME, CORNERS = __ON__, __RADIUS__, __SAME__, __CORNERS__
 VRAY_ON, VRAY_RADIUS, VRAY_SAME, VRAY_CORNERS = __VRAY_ON__, __VRAY_RADIUS__, __VRAY_SAME__, __VRAY_CORNERS__
-OCTANE_ROUND, OCTANE_MODE, OCTANE_RADIUS, OCTANE_OTHERS, OCTANE_FAST = (
-    __OCTANE_ROUND__, __OCTANE_MODE__, __OCTANE_RADIUS__, __OCTANE_OTHERS__, __OCTANE_FAST__)
+OCTANE_ROUND, OCTANE_MODE, OCTANE_RADIUS, OCTANE_OTHERS, OCTANE_ACCURATE = (
+    __OCTANE_ROUND__, __OCTANE_MODE__, __OCTANE_RADIUS__, __OCTANE_OTHERS__, __OCTANE_ACCURATE__)
 NODES = {REDSHIFT: ("__RS_SPACE__", "__RS_NODE__", "radius", "sameobjectonly"),
          ARNOLD: ("__AR_SPACE__", "__AR_NODE__", "radius", "self_only")}
 # Arnold shader node -> its normal input; the round node is wired into it only while rounding is on
@@ -197,7 +197,7 @@ def write_octane(material, values):
         shader = shader.GetNext()
     if shader is None:
         return
-    shader[OCTANE_MODE] = OCTANE_FAST if on else 0  # 0 is Off
+    shader[OCTANE_MODE] = OCTANE_ACCURATE if on else 0  # 0 is Off
     shader[OCTANE_RADIUS], shader[OCTANE_OTHERS] = float(radius), not same
 
 
@@ -233,7 +233,7 @@ def tag_code(ids):
     """The Python tag source for the user data ids {'on', 'radius', 'same', 'corners'} (corners may be 0)."""
     values = dict(KIND=KIND, STATE=STATE, VRAY=VRAY, REDSHIFT=REDSHIFT, ARNOLD=ARNOLD, OCTANE=OCTANE,
                   OCTANE_ROUND=OCTANE_ROUND, OCTANE_MODE=OCTANE_MODE, OCTANE_RADIUS=OCTANE_RADIUS,
-                  OCTANE_OTHERS=OCTANE_OTHERS, OCTANE_FAST=OCTANE_FAST, VRAY_ON=VRAY_ON,
+                  OCTANE_OTHERS=OCTANE_OTHERS, OCTANE_ACCURATE=OCTANE_ACCURATE, VRAY_ON=VRAY_ON,
                   VRAY_RADIUS=VRAY_RADIUS, VRAY_SAME=VRAY_SAME, VRAY_CORNERS=VRAY_CORNERS, RS_SPACE=RS_SPACE,
                   RS_NODE=RS_NODE, AR_SPACE=AR_SPACE, AR_NODE=AR_NODE)
     values.update({key.upper(): number for key, number in ids.items()})
