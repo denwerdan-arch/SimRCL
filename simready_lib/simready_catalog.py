@@ -40,7 +40,8 @@ _VERSIONISH = re.compile(r"^(?:v\d{1,2}|\d{1,2}[dv])$")
 _VLM_SUFFIX = "_vlm_generated"
 
 Option = namedtuple("Option", "key label count")
-Catalog = namedtuple("Catalog", "tree nodes hierarchy sizes media stats featured titles makers", defaults=({},))
+# added: {(repo, package): date} from simready_history, filled in after the catalog itself is shown
+Catalog = namedtuple("Catalog", "tree nodes hierarchy sizes media stats featured titles makers added", defaults=({}, {}))
 # groups: the landing page groups the maker belongs to ("oem", "isv", "dsx"; one maker can be in two)
 Provider = namedtuple("Provider", "key name groups count url")
 PROVIDER_PREFIX = "oem:"  # the service files every company under central:category = oem:<repository owner>
@@ -87,6 +88,12 @@ def format_dimensions(dims):
 def format_mass(kilograms):
     """26.949758 -> '26.9 kg', 0.3203 -> '0.32 kg'; empty when unknown."""
     return "" if kilograms is None else "%s kg" % ("%.3g" % kilograms)
+
+
+def format_day(timestamp):
+    """'2026-11-02T10:00:00.000Z' or '2026-11-02' -> '02.11.2026'."""
+    match = re.match(r"(\d{4})-(\d\d)-(\d\d)", timestamp or "")
+    return "%s.%s.%s" % (match.group(3), match.group(2), match.group(1)) if match else ""
 
 
 def format_modified(timestamp):
@@ -602,6 +609,7 @@ def card_from_hit(hit, catalog):
         "joints": media.get("moving", 0), "media": media, "source_name": asset["ref"]["repo"].split("/")[-1],
         "provider": provider_name(catalog, asset["ref"]["repo"].split("/")[0]),
         "vlm": _vlm_fields(source), "extras": _extras(props),
+        "added": catalog.added.get((asset["ref"]["repo"], asset["ref"]["package"])),
     }
 
 
@@ -658,18 +666,21 @@ def _without_revision(key):
 SORT_OPTIONS = (
     ("relevance", "Relevance"), ("name", "Name"), ("filename", "File name"), ("filename_length", "File name length"),
     ("size", "File size"), ("volume", "Dimensions (volume)"), ("largest", "Largest dimension"),
-    ("joints", "Moving parts"), ("modified", "Date"), ("match", "Match %"),
+    ("joints", "Moving parts"), ("added", "Date added"), ("modified", "Date"), ("match", "Match %"),
 )
+ALWAYS_SORTS = ("relevance",)
 
 
-def available_sort_options(cards):
+def available_sort_options(cards, always=ALWAYS_SORTS):
     """SORT_OPTIONS the loaded cards can actually be ordered by.
 
     The service stopped sending the file date in lists (November 2026), so a date sort would silently do nothing;
-    a key is offered only when at least half of the cards carry a value for it. Relevance is always offered.
+    a key is offered only when at least half of the cards carry a value for it. Keys in always are offered
+    regardless: Relevance, and Date added once the history is known (the landing page's featured assets are
+    often older than the history, yet the sort is what finds the new ones).
     """
     def covered(key):
-        return key == "relevance" or 2 * sum(1 for card in cards if _sort_value(card, key) is not None) >= len(cards)
+        return key in always or 2 * sum(1 for card in cards if _sort_value(card, key) is not None) >= len(cards)
     return tuple(option for option in SORT_OPTIONS if covered(option[0]))
 
 
@@ -684,7 +695,7 @@ def _sort_value(card, key):
         "name": (card["title"] or card["filename"]).lower(), "filename": card["filename"].lower(),
         "filename_length": len(stem), "size": card["bytes"], "volume": _volume(card["dims"]),
         "largest": max(card["dims"]) if card["dims"] else None,
-        "joints": card["joints"], "modified": card["modified"], "match": card.get("match"),
+        "joints": card["joints"], "modified": card["modified"], "match": card.get("match"), "added": card.get("added"),
     }
     return values[key]
 
@@ -696,6 +707,16 @@ def sort_cards(cards, key, descending=False):
     keyed = [(card, _sort_value(card, key)) for card in cards]
     present = sorted((pair for pair in keyed if pair[1] is not None), key=lambda pair: pair[1], reverse=descending)
     return [card for card, _ in present] + [card for card, value in keyed if value is None]
+
+
+def stamp_added(cards, added):
+    """Copies of cards carrying the date their package was added (None when unknown)."""
+    return [dict(card, added=added.get(_package_id(card))) for card in cards]
+
+
+def newest_packages(added, limit):
+    """The limit most recently added (repo, package) pairs, newest first."""
+    return [package for package, _ in sorted(added.items(), key=lambda item: item[1], reverse=True)[:limit]]
 
 
 def order_featured(cards, featured):

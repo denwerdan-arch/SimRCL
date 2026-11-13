@@ -45,7 +45,8 @@ def detail_rows(card, local_state=None):
     match = card.get("match")
     rows = [("Match", "%d%% for the search" % match if match is not None else ""), ("Provider", card.get("provider")), _author_row(card), ("Source", card["source_name"]), ("File", card["filename"]),
             ("Category", card["category"]), ("Type", card["asset_type"]), ("License", card["license"]),
-            ("Size", cat.format_bytes(card["bytes"])), ("Date", cat.format_modified(card["modified"])), ("Q-code", card["qcode"])]
+            ("Size", cat.format_bytes(card["bytes"])), ("Added", cat.format_day(card.get("added"))),
+            ("Date", cat.format_modified(card["modified"])), ("Q-code", card["qcode"])]
     rows += _fact_rows(card) + _text_rows(card) + [("Local copy", LOCAL_TEXT.get(local_state))]
     return [(label, str(value)) for label, value in rows if value]
 

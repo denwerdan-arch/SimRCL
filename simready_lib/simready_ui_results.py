@@ -82,6 +82,9 @@ class ToolbarPanel(ui.Panel):
             note = "Loading %s of %s to sort them all..." % (cat.format_count(len(model.cards)), cat.format_count(model.total))
             self.text(note, x, cy, ui.ACCENT, ui.BG)
             return
+        if model.newest:
+            self.text("Newest %s assets" % cat.format_count(len(model.cards)), x, cy, ui.ACCENT, ui.BG)
+            return
         suffix = " results, loaded ones sorted" if model.sorting_loaded() else " results"
         for part, color in ((str(len(model.cards)), ui.ACCENT), (" of ", ui.MUTED),
                             (cat.format_count(model.total), ui.ACCENT), (suffix, ui.MUTED)):
@@ -260,22 +263,35 @@ class ResultsPanel(ui.Panel):
         room = rect[2] - rect[0] - 24
         self.text(card["title"] or card["filename"], rect[0] + 12, top + 15, ui.TEXT, ui.OVERLAY, c4d.FONT_BOLD, room)
         self.text(self.caption(card), rect[0] + 12, top + 34, ui.MUTED, ui.OVERLAY, c4d.FONT_MONOSPACED, room, middle=True)
-        self.draw_badge(card, rect[0] + 8, rect[1] + 8)
+        badge = self.draw_badge(card, rect[0] + 8, rect[1] + 8)
+        self.draw_new(card, rect[0] + 8 + badge, rect[1] + 8)
         self.draw_match(card, rect[2] - 8, rect[1] + 8)
         if index == self.model.selected:
             self.frame(rect, ui.TEXT)
             self.frame((rect[0] + 1, rect[1] + 1, rect[2] - 1, rect[3] - 1), ui.TEXT)
 
     def draw_badge(self, card, x, y):
-        """Accent square with a tick on assets that are already on disk (white frame when a newer revision exists)."""
+        """Accent square with a tick on assets that are already on disk (white frame when a newer revision exists).
+
+        Returns the width it took (0 when nothing was drawn), so the NEW mark can follow it.
+        """
         state = self.model.download_state(card)
         if state is None:
-            return
+            return 0
         box = (x, y, x + 17, y + 17)
         self.fill(box, ui.ACCENT_FILL)
         self.checkmark(box, ui.ON_ACCENT)
         if state == simready_library.OUTDATED:
             self.frame((x - 1, y - 1, x + 18, y + 18), ui.TEXT)
+        return 24
+
+    def draw_new(self, card, x, y, width=40):
+        """'NEW' mark on assets whose package was added in the last two weeks."""
+        if not self.model.is_new(card):
+            return
+        box = (x, y, x + width, y + 17)
+        self.fill(box, ui.NEW_FILL)
+        self.text_center("NEW", box, ui.ON_ACCENT, ui.NEW_FILL, c4d.FONT_BOLD)
 
     def draw_match(self, card, right, top, width=44):
         """'87%' badge ending at right: how well the preview matches the query, coloured green / amber / red."""
@@ -300,6 +316,7 @@ class ResultsPanel(ui.Panel):
         pic = (rect[0] + 8, rect[1] + 8, rect[0] + 8 + layout.LIST_THUMB - 1, rect[1] + 8 + layout.LIST_THUMB - 1)
         self.draw_image(card, pic)
         self.draw_badge(card, pic[0] + 4, pic[1] + 4)
+        self.draw_new(card, pic[0] + 4, pic[3] - 21)  # bottom of the thumbnail: next to the tick it would not fit
         self.draw_match(card, rect[2] - 120, (rect[1] + rect[3]) // 2 - 9)
         cy, left = (rect[1] + rect[3]) // 2, pic[2] + 14
         room = rect[2] - left - 200

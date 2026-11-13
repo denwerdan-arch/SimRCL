@@ -31,10 +31,11 @@ PLACEHOLDER = rgb(34, 34, 34)
 MATCH_HIGH = rgb(118, 185, 0)  # match percentage badge: >= 80
 MATCH_MID = rgb(230, 180, 0)  # 50..79
 MATCH_LOW = rgb(230, 70, 55)  # below 50
+NEW_FILL = rgb(118, 185, 0)  # NEW mark of recently added assets (filled, the match badge is only outlined)
 BRAND_DIM = rgb(96, 96, 96)
 
 BRAND_NAME, BRAND_BY = "SimRCL", "by Dead_wall"  # SimReady Central Library (was "SimRS" until 1.0.5)
-VERSION = "1.2.1"
+VERSION = "1.3.0"
 PRODUCT_NAME = BRAND_NAME + " " + BRAND_BY
 AUTHOR_URL = "https://trycad.online/?lang=en"  # the brand in the header links here
 DRAW_ERRORS = []  # last tracebacks of failed repaints, readable from a debugging console

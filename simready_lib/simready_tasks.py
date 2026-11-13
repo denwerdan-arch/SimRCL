@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import simready_catalog
 import simready_client
+import simready_history
 import simready_library
 import simready_media
 import simready_update
@@ -17,6 +18,7 @@ import simready_update
 NETWORK_ERRORS = (OSError, ValueError, KeyError)
 IMAGE_WORKERS = 6
 SORT_PAGE_LIMIT = 400  # largest page the service answers quickly without usd_properties
+NEWEST_PACKAGES = 150  # a Date added sort over the whole catalog looks at this many of the newest packages
 _image_epoch = [0]  # bumped to make queued downloads give up (a list so no global statement is needed)
 
 
@@ -36,9 +38,15 @@ def _guarded(events, token, work):
 
 
 def catalog_async(events, cache_dir):
-    """Load hierarchy, counts, sizes and media indexes, then publish a 'catalog' event."""
+    """Load hierarchy, counts, sizes and media indexes and publish 'catalog'; then the package dates as 'history'.
+
+    The history comes second so the window never waits for it: the first run reads every dataset's commit
+    list (seconds), later runs a request or two. Without it the window simply has no Date added sort or NEW marks.
+    """
     def work():
-        events.put(("catalog", 0, simready_catalog.load_catalog(cache_dir)))
+        catalog = simready_catalog.load_catalog(cache_dir)
+        events.put(("catalog", 0, catalog))
+        events.put(("history", 0, simready_history.refresh(cache_dir, list(catalog.sizes))))
     _spawn(_guarded, events, 0, work)
 
 
@@ -91,6 +99,25 @@ def downloaded_async(events, token, catalog, query, mode, selection, library):
         for pattern in simready_library.regexp_chunks(library):
             cards += _all_cards(query, mode, dict(base, filter_url_regexp=pattern), catalog)
         cards = simready_library.keep_downloaded(cards, library)
+        events.put(("page", token, cards, len(cards), None, False))
+    _spawn(_guarded, events, token, work)
+
+
+def newest_async(events, token, catalog, selection, limit=NEWEST_PACKAGES):
+    """Date added over the whole catalog: fetch only the newest packages (a few requests), as one page.
+
+    The packages are pinned by URL regular expressions, as for the downloaded view. Only for the unfiltered
+    catalog: a meaning search ranks every pinned package instead of narrowing them, and a filter can leave none
+    of the globally newest packages, so with a query or filters the browser loads the results and sorts them.
+    Assets without a known date would only sort last.
+    """
+    def work():
+        wanted = dict.fromkeys(simready_catalog.newest_packages(catalog.added, limit), True)
+        base = simready_catalog.search_fields(selection, catalog)
+        cards = []
+        for pattern in simready_library.regexp_chunks(wanted):
+            cards += _all_cards("", "Hybrid", dict(base, filter_url_regexp=pattern), catalog)
+        cards = simready_library.keep_downloaded(cards, wanted)
         events.put(("page", token, cards, len(cards), None, False))
     _spawn(_guarded, events, token, work)
 

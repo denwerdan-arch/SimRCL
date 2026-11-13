@@ -2,6 +2,7 @@
 import os
 import pathlib
 import queue
+import datetime
 import tempfile
 import time
 import webbrowser
@@ -12,6 +13,7 @@ from c4d import bitmaps, documents, gui
 import simready_catalog as cat
 import simready_client
 import simready_dims as dims
+import simready_history
 import simready_import
 import simready_layout as layout
 import simready_library
@@ -65,6 +67,9 @@ SORT_PAGE_SIZE = 400  # fewer, larger requests while loading everything for a so
 # A sort loads every result first; above this many (an empty query lists the whole catalog, 3 732) it sorts only
 # what is loaded instead of downloading the catalog page by page.
 SORT_ALL_LIMIT = 1000
+# Date added is worth the wait: a filtered set is loaded whole up to this (the full catalog, 3 829, takes ~11 s);
+# the unfiltered catalog takes the newest packages instead (simready_tasks.newest_async).
+ADDED_ALL_LIMIT = 5000
 ASCENDING, DESCENDING = MENU_BASE + 100, MENU_BASE + 101
 
 (ID_QUERY, ID_BRAND, ID_MODE, ID_ACTIONS, ID_BODY, ID_SIDEBAR_GROUP, ID_SIDEBAR, ID_TOOLBAR, ID_RESULTS,
@@ -124,6 +129,7 @@ class Model:
         self.match_requested = set()  # card keys sent for a match percentage in the current search
         self.clips = simready_video.ClipDeck(CLIP_AREAS)
         self.update = None  # release_info of a newer SimRCL, shown as a button next to the brand
+        self.newest = False  # the results are the newest packages only (Date added over a too large result set)
 
     @property
     def has_more(self):
@@ -141,11 +147,15 @@ class Model:
         (a Text search ranks the whole catalog), which is far too slow for a sort. Result sets larger than
         SORT_ALL_LIMIT are sorted as loaded too (see sorting_loaded).
         """
-        return self.custom_sort() and self.has_more and self.total <= SORT_ALL_LIMIT
+        return self.custom_sort() and self.has_more and self.total <= self.sort_limit() and not self.needs_newest()
 
     def sorting_loaded(self):
         """True when a custom sort covers only the loaded cards because the result set is too large."""
-        return self.custom_sort() and self.has_more and self.total > SORT_ALL_LIMIT
+        return self.custom_sort() and self.has_more and self.total > self.sort_limit()
+
+    def sort_limit(self):
+        """Largest result set a sort loads completely."""
+        return ADDED_ALL_LIMIT if self.sort_key == "added" else SORT_ALL_LIMIT
 
     def resort(self):
         """Rebuild the displayed order from the loaded cards, keeping the open card open."""
@@ -159,6 +169,23 @@ class Model:
         chips = cat.selection_chips(self.selection, self.catalog) if self.catalog else []
         own = ([("Downloaded", "downloaded", None)] if self.only_downloaded else []) + ([('"%s"' % self.query, "query", None)] if self.query else [])
         return own + chips
+
+    def is_new(self, card):
+        """True for an asset whose package was added in the last simready_history.NEW_DAYS days (the NEW mark)."""
+        return simready_history.is_new(card.get("added"), datetime.date.today())
+
+    def sort_options(self):
+        """Sort keys the menu offers: Date added as soon as the package history is known."""
+        always = cat.ALWAYS_SORTS + (("added",) if self.catalog is not None and self.catalog.added else ())
+        return cat.available_sort_options(self.loaded, always)
+
+    def needs_newest(self):
+        """True for Date added over the unfiltered catalog: the newest packages are fetched instead of everything.
+
+        With a query or filters the result set is loaded and sorted (see simready_tasks.newest_async for why).
+        """
+        plain = not self.query and not self.only_downloaded and not cat.is_filtering(self.selection)
+        return self.sort_key == "added" and plain and self.has_more and bool(self.catalog.added)
 
     def download_state(self, card):
         """None, simready_library.CURRENT or simready_library.OUTDATED for the local copy of a card."""
@@ -413,7 +440,7 @@ class BrowserDialog(gui.GeDialog):
         model.match_requested = set()
         model.loaded, model.cards, model.total, model.next_cursor = [], [], 0, None
         model.selected, model.detour, model.similar, model.loading = None, None, {}, True
-        model.empty_text = "Nothing found"
+        model.empty_text, model.newest = "Nothing found", False
         self.show_group(ID_DETAIL_GROUP, False)
         self.refresh(ID_TOOLBAR, ID_RESULTS, ID_SIDEBAR)
         if model.only_downloaded:
@@ -558,22 +585,45 @@ class BrowserDialog(gui.GeDialog):
     def act_sort_entries(self):
         """Menu: one entry per sort key (checked when active), then the direction."""
         model = self.model
-        options = cat.available_sort_options(model.loaded)
+        options = model.sort_options()
         entries = [(MENU_BASE + i, label + checked(key == model.sort_key)) for i, (key, label) in enumerate(options)]
         return entries + [(0, ""), (ASCENDING, "Ascending" + checked(not model.sort_desc)),
                           (DESCENDING, "Descending" + checked(model.sort_desc))]
 
     def act_sort_choice(self, choice):
-        """Apply a sort key or direction; a real sort first loads all remaining pages."""
+        """Apply a sort key or direction; a real sort first loads all remaining pages.
+
+        Date added starts newest first, which is what it is for. Leaving it after it showed only the newest
+        packages searches again, so the full result set comes back.
+        """
         model = self.model
         if choice == ASCENDING or choice == DESCENDING:
             model.sort_desc = choice == DESCENDING
         else:
-            model.sort_key = cat.available_sort_options(model.loaded)[choice - MENU_BASE][0]
+            model.sort_key = model.sort_options()[choice - MENU_BASE][0]
+            model.sort_desc = True if model.sort_key == "added" else model.sort_desc
+        if model.newest and model.sort_key != "added":
+            self.new_search()
+            return
         model.resort()
         self.refresh(ID_TOOLBAR, ID_RESULTS, ID_DETAIL)
-        if model.sorting_all():
+        self.continue_sort()
+
+    def continue_sort(self):
+        """Fetch what the active sort needs: the remaining pages, or the newest packages for Date added."""
+        model = self.model
+        if model.needs_newest():
+            self.load_newest()
+        elif model.sorting_all():
             self.act_need_more()
+
+    def load_newest(self):
+        """Replace the results by the newest packages that match the query and filters."""
+        model = self.model
+        self.token += 1
+        model.newest, model.loading, model.next_cursor = True, True, None
+        self.refresh(ID_TOOLBAR, ID_RESULTS)
+        simready_tasks.newest_async(self.events, self.token, model.catalog, model.selection)
 
     def act_toggle_sidebar(self):
         self.model.sidebar_visible = not self.model.sidebar_visible
@@ -991,19 +1041,30 @@ class BrowserDialog(gui.GeDialog):
         self.refresh(ID_SIDEBAR)
         self.new_search()
 
+    def on_history(self, added):
+        """Package dates are known: mark the loaded cards, offer Date added and redo a Date added sort."""
+        model = self.model
+        model.catalog = model.catalog._replace(added=added)
+        model.loaded = cat.stamp_added(model.loaded, added)
+        model.detour = cat.stamp_added([model.detour], added)[0] if model.detour else None
+        model.resort()
+        self.refresh(ID_TOOLBAR, ID_RESULTS, ID_DETAIL)
+        if model.sort_key == "added" and not model.loading:
+            self.continue_sort()
+
     def on_page(self, cards, total, next_cursor, appended):
         """Add a page of cards and fetch their tiles."""
         model = self.model
         known = {card["key"] for card in model.loaded} if appended else set()
         cards = [card for card in cards if card["key"] not in known]  # featured assets can reappear in later pages
+        cards = cat.stamp_added(cards, model.catalog.added)  # the page may have been searched before the history came
         model.loaded = model.loaded + cards if appended else cards
         model.resort()
         model.total, model.next_cursor, model.loading = total, next_cursor, False
         model.empty_text = "" if model.cards else self.empty_message()
         self.refresh(ID_TOOLBAR, ID_RESULTS, ID_DETAIL)
         self.request_matches(cards)
-        if model.sorting_all():
-            self.act_need_more()  # a sort only makes sense over everything, so keep fetching
+        self.continue_sort()  # a sort only makes sense over everything, so keep fetching
 
     def request_matches(self, cards):
         """Ask how well the new cards match the typed query (no query, nothing to judge)."""
@@ -1060,6 +1121,7 @@ class BrowserDialog(gui.GeDialog):
     def on_details(self, full):
         """Swap in the complete record of a card whose licence and other properties were missing."""
         model = self.model
+        full = cat.stamp_added([full], model.catalog.added)[0]
         previous = next((card for card in model.loaded if card["key"] == full["key"]), model.detour or {})
         if previous.get("match") is not None:
             full["match"] = previous["match"]  # the full record comes from a plain search and has no percentage

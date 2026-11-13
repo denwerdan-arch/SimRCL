@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0
+
+- Date added: a new sort, newest first, and a green NEW mark on assets added in the last 14 days (in the grid, the list and as "Added" in the asset's details). The search service no longer sends dates, so SimRCL reads when each package was published from the public commit history of its Hugging Face dataset ("deploy ... from/into ...", "Add SimReady package: ..."); a package that arrived in an unnamed batch gets the day SimRCL first saw it in the catalog. The first run reads the histories in the background (about 1 MB, under 20 s, the window works meanwhile); later a dataset is read again only when its revision changes, and only its new commits. Over the whole catalog the sort shows the 150 newest assets; with a search text or filters it loads the matching results (up to 5 000) and sorts them. NVIDIA's own assets were all republished between 2 and 11 October 2026, so for the ones older than that the date is that republication.
+
 ## 1.2.1
 
 - Octane materials (OctaneRender for Cinema 4D 2027.1): Universal material with Image Texture shaders for albedo, metallic, roughness, normal, opacity and emission; packed ORM maps are read per channel through Channel picker shaders, colour maps in sRGB, data maps linear. Chosen automatically when the scene renders with Octane, or in Settings > Materials. Texture repeat follows the texture tag, and Round corners on the model drive the material's Round edges shader (Accurate, roundness 1, 8 samples, consider other objects unless "Same object only"). With "Prefer OpenPBR" on, Octane gets its OpenPBR surface material instead (same maps; emission through weight and luminance); an Octane without it gets the Universal material.

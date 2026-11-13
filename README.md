@@ -61,7 +61,7 @@ Manual install: Edit > Preferences > Open Preferences Folder > `plugins`, copy t
 
 ## Features
 
-- Search: natural language, keywords or both, with the catalog's match percentages; categories, providers (OEMs, ISVs, DSX), mass, licence and size filters (min / max per axis, as on the site), sorting, grid and list views.
+- Search: natural language, keywords or both, with the catalog's match percentages; categories, providers (OEMs, ISVs, DSX), mass, licence and size filters (min / max per axis, as on the site), sorting (including Date added, newest first), a NEW mark on assets added in the last two weeks, grid and list views.
 - Asset details from the catalog: provider, author, polygons, mass, physics, description and tags; 360 degree and moving-parts video previews; similar assets.
 - Downloads with progress, a local library, re-download, custom download folder.
 - Import into the active document:
